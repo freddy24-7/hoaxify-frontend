@@ -100,3 +100,4 @@ describe("UserSignupPage", () => {
 
     })
 });
+//User interactions

@@ -66,3 +66,4 @@ export class UserSignupPage extends React.Component {
 }
 
 export default UserSignupPage;
+//user interactions
