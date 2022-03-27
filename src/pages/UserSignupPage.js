@@ -1,82 +1,144 @@
-import React from "react";
+import React, { useState } from 'react';
+import Input from '../components/Input';
+import ButtonWithProgress from '../components/ButtonWithProgress';
+import { connect } from 'react-redux';
+import * as authActions from '../redux/authActions';
 
-export class UserSignupPage extends React.Component {
+export const UserSignupPage = (props) => {
+  const [form, setForm] = useState({
+    displayName: '',
+    username: '',
+    password: '',
+    passwordRepeat: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [pendingApiCall, setPendingApiCall] = useState(false);
 
-    state = {
-        displayName: '',
-        username: '',
-        password: '',
-        passwordRepeat: ''
-    }
-    onChangeDisplayName = (event) => {
-        const value = event.target.value;
-        this.setState({displayName: value})
-    }
-    onChangeUserName = (event) => {
-        const value = event.target.value;
-        this.setState({username: value})
-    }
-    onChangePassword = (event) => {
-        const value = event.target.value;
-        this.setState({password: value})
-    }
-    onChangePasswordRepeat = (event) => {
-        const value = event.target.value;
-        this.setState({passwordRepeat: value})
-    }
-    onClickSignup = () => {
-        this.props.actions.postSignup();
+  const onChange = (event) => {
+    const { value, name } = event.target;
 
-    }
+    setForm((previousForm) => {
+      return {
+        ...previousForm,
+        [name]: value
+      };
+    });
 
+    setErrors((previousErrors) => {
+      return {
+        ...previousErrors,
+        [name]: undefined
+      };
+    });
+  };
 
-    render() {
-        return (
-            <div><h1>Sign Up</h1>
-                <div>
-                    <input
-                        placeholder="Your display name"
-                        value={this.state.displayName}
-                        onChange={this.onChangeDisplayName}
-                    />
-                </div>
-                <div>
-                    <input placeholder="Your username"
-                           value={this.state.username}
-                           onChange={this.onChangeUserName}
-                    />
-                </div>
-                <div>
-                    <input placeholder="Your password"
-                           type="password"
-                           value={this.state.password}
-                           onChange={this.onChangePassword}
-                    />
-                </div>
-                <div>
-                    <input placeholder="Repeat your password"
-                           type="password"
-                           value={this.state.passwordRepeat}
-                           onChange={this.onChangePasswordRepeat}
-                    />
-                </div>
-                <div>
-                    <button onClick={this.onClickSignup}>Sign Up</button>
-                </div>
+  const onClickSignup = () => {
+    const user = {
+      username: form.username,
+      displayName: form.displayName,
+      password: form.password
+    };
+    setPendingApiCall(true);
+    props.actions
+      .postSignup(user)
+      .then((response) => {
+        setPendingApiCall(false);
+        props.history.push('/');
+      })
+      .catch((apiError) => {
+        if (apiError.response.data && apiError.response.data.validationErrors) {
+          setErrors(apiError.response.data.validationErrors);
+        }
+        setPendingApiCall(false);
+      });
+  };
 
-            </div>
-        )
-    }
-}
+  let passwordRepeatError;
+  const { password, passwordRepeat } = form;
+  if (password || passwordRepeat) {
+    passwordRepeatError =
+      password === passwordRepeat ? '' : 'Does not match to password';
+  }
+
+  return (
+    <div className="container">
+      <h1 className="text-center">Sign Up</h1>
+      <div className="col-12 mb-3">
+        <Input
+          name="displayName"
+          label="Display Name"
+          placeholder="Your display name"
+          value={form.displayName}
+          onChange={onChange}
+          hasError={errors.displayName && true}
+          error={errors.displayName}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <Input
+          name="username"
+          label="Username"
+          placeholder="Your username"
+          value={form.username}
+          onChange={onChange}
+          hasError={errors.username && true}
+          error={errors.username}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <Input
+          name="password"
+          label="Password"
+          placeholder="Your password"
+          type="password"
+          value={form.password}
+          onChange={onChange}
+          hasError={errors.password && true}
+          error={errors.password}
+        />
+      </div>
+      <div className="col-12 mb-3">
+        <Input
+          name="passwordRepeat"
+          label="Password Repeat"
+          placeholder="Repeat your password"
+          type="password"
+          value={form.passwordRepeat}
+          onChange={onChange}
+          hasError={passwordRepeatError && true}
+          error={passwordRepeatError}
+        />
+      </div>
+      <div className="text-center">
+        <ButtonWithProgress
+          onClick={onClickSignup}
+          disabled={pendingApiCall || passwordRepeatError ? true : false}
+          pendingApiCall={pendingApiCall}
+          text="Sign Up"
+        />
+      </div>
+    </div>
+  );
+};
 
 UserSignupPage.defaultProps = {
+  actions: {
+    postSignup: () =>
+      new Promise((resolve, reject) => {
+        resolve({});
+      })
+  },
+  history: {
+    push: () => {}
+  }
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
     actions: {
-        postSignup: () =>
-            new Promise((resolve, reject => {
-               resolve({})
-            }))
+      postSignup: (user) => dispatch(authActions.signupHandler(user))
     }
-}
+  };
+};
 
-
-export default UserSignupPage;
+export default connect(null, mapDispatchToProps)(UserSignupPage);
